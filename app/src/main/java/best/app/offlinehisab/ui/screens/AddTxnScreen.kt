@@ -1,0 +1,235 @@
+package best.app.offlinehisab.ui.screens
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import best.app.offlinehisab.data.db.Txn
+import best.app.offlinehisab.data.db.TxnType
+import best.app.offlinehisab.ui.theme.OfflineHisabTheme
+import best.app.offlinehisab.utils.CustomTextField
+import best.app.offlinehisab.viewmodel.MainViewModel
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun AddTxnScreenPreview() {
+    OfflineHisabTheme {
+        AddTxnScreen(
+            vm = viewModel(),
+            navController = rememberNavController(),
+            customerId = "",
+            isCredit = true
+        )
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddTxnScreen(
+    vm: MainViewModel,
+    navController: NavController,
+    customerId: String,
+    isCredit: Boolean = false,
+    isUpdate: Boolean = false,
+) {
+    val txn = vm.selectedTxn.value
+
+    var amountStr by remember { mutableStateOf(TextFieldValue(text = (if (isUpdate) txn?.amount else "").toString())) }
+    var note by remember {
+        mutableStateOf(
+            TextFieldValue(
+                text = (if (isUpdate) txn?.note ?: "" else "")
+            )
+        )
+    }
+    var type by remember {
+        mutableStateOf(
+            if (isUpdate) txn?.type
+                ?: TxnType.CREDIT else if (isCredit) TxnType.CREDIT else TxnType.DEBIT
+        )
+    }
+    var showError by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                navigationIcon = {
+                    IconButton(
+                        onClick = {
+                            navController.navigateUp()
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowLeft,
+                            contentDescription = "back"
+                        )
+                    }
+                },
+                title = {
+                    Text(
+                        if (isUpdate) "Update Transaction" else "Add Transaction",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            CustomTextField(
+                value = amountStr,
+                onValueChange = { amountStr = it; showError = false },
+                placeholder = "Amount",
+                modifier = Modifier.fillMaxWidth(),
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Next,
+                maxCharacter = 9
+            )
+            Spacer(Modifier.height(8.dp))
+
+            CustomTextField(
+                value = note,
+                onValueChange = { note = it },
+                placeholder = "Note (optional)",
+                modifier = Modifier.fillMaxWidth(),
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Done
+            )
+            Spacer(Modifier.height(8.dp))
+
+            Text("Type", style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(4.dp))
+            Row {
+                Row(
+                    modifier = Modifier.clickable(
+                        onClick = {
+                            if (!isUpdate) {
+                                type = TxnType.CREDIT
+                            }
+                        }
+                    ),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = type == TxnType.DEBIT,
+                        onCheckedChange = {
+                            if (!isUpdate) {
+                                type = TxnType.CREDIT
+                            }
+                        })
+                    Spacer(Modifier.width(6.dp))
+                    Text("You Paid")
+                }
+                Spacer(Modifier.width(16.dp))
+                Row(
+                    modifier = Modifier.clickable(
+                        onClick = {
+                            if (!isUpdate) {
+                                type = TxnType.CREDIT
+                            }
+                        }
+                    ),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = type == TxnType.CREDIT,
+                        onCheckedChange = {
+                            if (!isUpdate) {
+                                type = TxnType.DEBIT
+                            }
+                        })
+                    Spacer(Modifier.width(6.dp))
+                    Text("You Received")
+                }
+            }
+
+            if (showError) {
+                Spacer(Modifier.height(8.dp))
+                Text("Please enter a valid amount (> 0)", color = MaterialTheme.colorScheme.error)
+            }
+
+            Spacer(Modifier.height(16.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(10f),
+                horizontalArrangement = Arrangement.spacedBy(space = 20.dp)
+            ) {
+                Button(
+                    onClick = {
+                        val amt = amountStr.text.toDoubleOrNull() ?: 0.0
+                        if (amt <= 0.0) {
+                            showError = true
+                            return@Button
+                        }
+                        if (isUpdate) {
+                            txn?.id?.let {
+                                vm.updateTxn(
+                                    customerId,
+                                    txnId = it,
+                                    amt,
+                                    type,
+                                    note.text.trim().ifEmpty { null })
+                            }
+                        } else {
+                            vm.addTxn(customerId, amt, type, note.text.trim().ifEmpty { null })
+                        }
+                        navController.popBackStack()
+                    },
+                    modifier = Modifier.weight(8f)
+                ) {
+                    Text(
+                        if (isUpdate) "Update Transaction" else "Add Transaction"
+                    )
+                }
+                if (isUpdate) {
+                    Button(
+                        onClick = {
+                            txn?.let {
+                                vm.deleteTxn(customerId, it)
+                                navController.popBackStack()
+                            }
+                        },
+                        modifier = Modifier.weight(8f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Red
+                        )
+                    ) {
+                        Text("Delete")
+                    }
+                } else {
+
+                }
+            }
+        }
+    }
+}
