@@ -21,4 +21,7 @@ interface CustomerDao {
     // keep the suspend version if you need one-off fetches
     @Query("SELECT * FROM customers WHERE id = :id")
     suspend fun getCustomer(id: String): Customer?
+
+    @Query("SELECT COUNT(*) FROM customers")
+    suspend fun countCustomers(): Int
 }

@@ -24,4 +24,7 @@ interface TxnDao {
 
     @Query("SELECT SUM(amount) FROM txns WHERE customerId = :customerId AND type = :type")
     fun sumByCustomerAndTypeFlow(customerId: String, type: TxnType): Flow<Double?>
+
+    @Query("SELECT COUNT(*) FROM txns")
+    suspend fun countTransactions(): Int
 }

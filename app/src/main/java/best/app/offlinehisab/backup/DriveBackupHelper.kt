@@ -2,6 +2,7 @@ package best.app.offlinehisab.backup
 
 import android.content.Context
 import android.util.Log
+import best.app.offlinehisab.data.db.AppDatabase
 import best.app.offlinehisab.di.AppModule
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.api.client.extensions.android.http.AndroidHttp
@@ -65,9 +66,25 @@ object DriveBackupHelper {
             .build()
     }
 
+    private suspend fun isDatabaseEmpty(db: AppDatabase): Boolean {
+        // Example: if you have multiple tables, check all of them
+        val totalRecords = db.txnDao().countTransactions() +
+                db.customerDao().countCustomers()
+
+        return totalRecords == 0
+    }
+
     suspend fun uploadDatabaseToDrive(context: Context, dbName: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val driveService = getDriveService(context)
+
+            val db = AppModule.provideDb(context)
+            val isDbEmpty = isDatabaseEmpty(db)
+
+            if (isDbEmpty) {
+                Log.d("DriveBackup", "Database is empty. Skipping upload.")
+                return@withContext false
+            }
 
             // Create or find folder
             val folderId = createOrGetAppFolder(driveService)
