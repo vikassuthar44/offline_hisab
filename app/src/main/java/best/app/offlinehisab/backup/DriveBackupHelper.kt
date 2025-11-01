@@ -204,40 +204,4 @@ object DriveBackupHelper {
             false
         }
     }
-
-
-    /*suspend fun restoreDatabaseFromDrive(context: Context, dbName: String): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val driveService = getDriveService(context)
-
-            val files = driveService.files().list()
-                .setSpaces("appDataFolder")
-                .setQ("name = '$dbName'")
-                .execute()
-                .files
-
-            if (files.isNullOrEmpty()) {
-                Log.e("DriveBackup", "No backup found")
-                return@withContext false
-            }
-
-            val fileId = files.first().id
-            val outputFile = context.getDatabasePath(dbName)
-
-            // ✅ Step 1: Close & clear Room before replacing
-            AppModule.destroyInstance()
-
-            driveService.files().get(fileId).executeMediaAndDownloadTo(FileOutputStream(outputFile))
-
-            // ✅ Step 3: Recreate Room + Repo for immediate usage
-            AppModule.provideDb(context)
-            AppModule.provideRepo(context)
-
-            Log.d("DriveBackup", "Restore successful!")
-            true
-        } catch (e: Exception) {
-            e.printStackTrace()
-            false
-        }
-    }*/
 }
