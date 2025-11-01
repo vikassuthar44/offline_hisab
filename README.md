@@ -55,8 +55,13 @@ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -sto
    **APIs & Services → Library**.  
 4. Search for **Google Drive API**.  
 5. Click **Enable**.
+```
 
-## 📱 
+## 📱 screenshot
+| Home Screen | Customer Details | 
+|--------------|---------------|
+| ![Home Screen](screenshot/home_page.png) | ![Expense List](screenshot/customer_page.png) | 
+
 🤝 **Contributions are welcome!**  
 If you’d like to improve Offline Hisab, fix a bug, or add a feature — feel free to fork the repo and open a pull request.  
 For significant changes, please start a discussion by opening an issue first.
