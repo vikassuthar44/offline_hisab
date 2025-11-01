@@ -56,3 +56,8 @@ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -sto
 4. Search for **Google Drive API**.  
 5. Click **Enable**.
 
+## 📱 
+🤝 **Contributions are welcome!**  
+If you’d like to improve Offline Hisab, fix a bug, or add a feature — feel free to fork the repo and open a pull request.  
+For significant changes, please start a discussion by opening an issue first.
+
