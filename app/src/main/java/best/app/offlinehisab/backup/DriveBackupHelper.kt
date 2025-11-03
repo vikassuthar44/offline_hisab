@@ -111,6 +111,13 @@ object DriveBackupHelper {
 
             Log.d("DriveBackup", "Upload successful: ${tempZip.name}")
             tempZip.delete()
+            AppModule.provideDb(
+                context = context
+            )
+            AppModule.provideRepo(
+                context = context
+            )
+            AppModule
             true
         } catch (e: Exception) {
             e.printStackTrace()

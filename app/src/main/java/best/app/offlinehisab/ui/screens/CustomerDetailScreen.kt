@@ -35,6 +35,7 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -55,9 +56,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import best.app.offlinehisab.R
 import best.app.offlinehisab.data.db.Customer
@@ -197,7 +198,14 @@ fun CustomerDetailScreen(
                         )
                     }
                 },
-                title = { Text(customerName, style = MaterialTheme.typography.titleLarge) },
+                title = {
+                    Text(
+                        text = customerName,
+                        style = MaterialTheme.typography.titleLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
                 actions = {
                     Row {
                         IconButton(
@@ -236,7 +244,12 @@ fun CustomerDetailScreen(
                         )
                     },
                     icon = { },
-                    text = { Text("You Paid") },
+                    text = {
+                        Text(
+                            text = "You Paid",
+                            color = Color.White
+                        )
+                    },
                     containerColor = Color(0xFFC62828),
                     shape = RoundedCornerShape(12.dp),
                     elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp)
@@ -253,7 +266,12 @@ fun CustomerDetailScreen(
                         )
                     },
                     icon = { },
-                    text = { Text("You Received") },
+                    text = {
+                        Text(
+                            text = "You Received",
+                            color = Color.White
+                        )
+                    },
                     containerColor = Color(0xFF2E7D32),
                     shape = RoundedCornerShape(12.dp),
                     elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp)
@@ -292,8 +310,35 @@ fun CustomerDetailScreen(
                         .padding(12.dp)
                 ) {
                     Column {
-                        Text(text = "Name: $customerName")
-                        Text(text = "Mob No: $customerMob")
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Name: ",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                            Text(
+                                text = customerName,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Normal
+                                )
+                            )
+                        }
+                        HorizontalDivider()
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Mob No: ",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                            Text(
+                                text = customerMob.toString(),
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Normal
+                                )
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -497,7 +542,7 @@ private fun TransactionRow(
                 Text(
                     txn.note ?: if (isCredit) "You Received" else "You Paid",
                     style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(4.dp))

@@ -17,8 +17,8 @@ class Repo(private val db: AppDatabase) {
     suspend fun addCustomer(name: String, phone: String? = null, note: String? = null) =
         custDao.insertCustomer(Customer(name = name, phone = phone, note = note))
 
-    suspend fun addTxn(customerId: String, amount: Double, type: TxnType, note: String? = null) {
-        txnDao.insertTxn(Txn(customerId = customerId, amount = amount, type = type, note = note))
+    suspend fun addTxn(customerId: String, amount: Double, type: TxnType, note: String? = null, dateMillis: Long) {
+        txnDao.insertTxn(Txn(customerId = customerId, amount = amount, type = type, note = note, date = dateMillis))
         val customer = getCustomer(customerId)
         customer?.update = System.currentTimeMillis()
         customer?.let { custDao.updateCustomer(c = it) }
@@ -30,10 +30,12 @@ class Repo(private val db: AppDatabase) {
         amount: Double,
         type: TxnType,
         note: String? = null,
+        dateMillis: Long,
     ) {
         txnDao.updateTxn(
             Txn(
-                id = txnId, customerId = customerId, amount = amount, type = type, note = note
+                id = txnId, customerId = customerId, amount = amount, type = type, note = note,
+                date = dateMillis
             )
         )
         val customer = getCustomer(customerId)
@@ -41,7 +43,12 @@ class Repo(private val db: AppDatabase) {
         customer?.let { custDao.updateCustomer(c = it) }
     }
 
-    suspend fun updateCustomer(customerId: Long, name: String, phone: String? = null, note: String? = null) {
+    suspend fun updateCustomer(
+        customerId: Long,
+        name: String,
+        phone: String? = null,
+        note: String? = null,
+    ) {
         val customer = Customer(
             id = customerId,
             name = name,

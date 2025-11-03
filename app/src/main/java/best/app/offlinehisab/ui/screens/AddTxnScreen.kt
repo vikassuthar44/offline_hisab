@@ -1,5 +1,8 @@
 package best.app.offlinehisab.ui.screens
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +25,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -35,6 +39,7 @@ import best.app.offlinehisab.data.db.TxnType
 import best.app.offlinehisab.ui.theme.OfflineHisabTheme
 import best.app.offlinehisab.utils.CustomTextField
 import best.app.offlinehisab.viewmodel.MainViewModel
+import java.util.Calendar
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
@@ -77,6 +82,66 @@ fun AddTxnScreen(
     }
     var showError by remember { mutableStateOf(false) }
 
+    // ----- Date & Time handling -----
+    val initialDateMillis = remember {
+        if (isUpdate) txn?.date ?: System.currentTimeMillis()
+        else System.currentTimeMillis()
+    }
+    var dateMillis by remember { mutableLongStateOf(initialDateMillis) }
+
+    // Formatter: dd-MMM-yyyy, hh:mm a (e.g. 02-Nov-2025, 03:42 PM)
+    val dateFormatter = remember {
+        java.text.SimpleDateFormat("dd-MMM-yyyy, hh:mm a", java.util.Locale.getDefault())
+    }
+    val dateText = remember(dateMillis) { dateFormatter.format(java.util.Date(dateMillis)) }
+
+    val context = LocalContext.current
+    val calendar = java.util.Calendar.getInstance().apply { timeInMillis = dateMillis }
+
+    // DatePickerDialog (allows today & past only)
+    val datePickerDialog = remember {
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                // Prepare a Calendar with selected date (day/month/year)
+                val cal = Calendar.getInstance()
+                cal.set(Calendar.YEAR, year)
+                cal.set(Calendar.MONTH, month)
+                cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+
+                // Preserve existing time from dateMillis (if any), otherwise use current time
+                val old = Calendar.getInstance().apply { timeInMillis = dateMillis }
+                cal.set(Calendar.HOUR_OF_DAY, old.get(Calendar.HOUR_OF_DAY))
+                cal.set(Calendar.MINUTE, old.get(Calendar.MINUTE))
+                cal.set(Calendar.SECOND, 0)
+                cal.set(Calendar.MILLISECOND, 0)
+
+                // Now open TimePickerDialog immediately so user picks time for the selected date
+                val now = Calendar.getInstance()
+                val timePicker = TimePickerDialog(
+                    context,
+                    { _, hourOfDay, minute ->
+                        // When time picked, update calendar with chosen time and set dateMillis
+                        cal.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                        cal.set(Calendar.MINUTE, minute)
+                        cal.set(Calendar.SECOND, 0)
+                        cal.set(Calendar.MILLISECOND, 0)
+                        dateMillis = cal.timeInMillis
+                    },
+                    old.get(Calendar.HOUR_OF_DAY), // initial hour (prefer previously selected / saved)
+                    old.get(Calendar.MINUTE),      // initial minute
+                    false // 12-hour format; set true for 24-hour
+                )
+                timePicker.show()
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).apply {
+            datePicker.maxDate = Calendar.getInstance().timeInMillis
+        }
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -111,7 +176,7 @@ fun AddTxnScreen(
                 onValueChange = { amountStr = it; showError = false },
                 placeholder = "Amount",
                 modifier = Modifier.fillMaxWidth(),
-                keyboardType = KeyboardType.Number,
+                keyboardType = KeyboardType.Decimal,
                 imeAction = ImeAction.Next,
                 maxCharacter = 9
             )
@@ -123,8 +188,52 @@ fun AddTxnScreen(
                 placeholder = "Note (optional)",
                 modifier = Modifier.fillMaxWidth(),
                 keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Done
+                imeAction = ImeAction.Default
             )
+            Spacer(Modifier.height(8.dp))
+
+            // Date & Time field (read-only) with calendar + clock icons
+            Column(
+                modifier = Modifier
+            ) {
+                Text(
+                    text = "Date & Time",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            shape = MaterialTheme.shapes.extraSmall,
+                            color = MaterialTheme.colorScheme.primary.copy(
+                                alpha = 0.75f
+                            )
+                        )
+                        .clickable {
+                            // 👇 Open DatePicker when user taps anywhere on the field
+                            val cal =
+                                Calendar.getInstance().apply { timeInMillis = dateMillis }
+                            datePickerDialog.updateDate(
+                                cal.get(Calendar.YEAR),
+                                cal.get(Calendar.MONTH),
+                                cal.get(Calendar.DAY_OF_MONTH)
+                            )
+                            datePickerDialog.show()
+                        }
+                        .padding(
+                            vertical = 15.dp
+                        )
+                        .padding(
+                            start = 12.dp
+                        )
+                ) {
+                    Text(
+                        text = dateText,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            }
+
             Spacer(Modifier.height(8.dp))
 
             Text("Type", style = MaterialTheme.typography.bodyMedium)
@@ -198,10 +307,18 @@ fun AddTxnScreen(
                                     txnId = it,
                                     amt,
                                     type,
-                                    note.text.trim().ifEmpty { null })
+                                    note.text.trim().ifEmpty { null },
+                                    dateMillis = dateMillis
+                                )
                             }
                         } else {
-                            vm.addTxn(customerId, amt, type, note.text.trim().ifEmpty { null })
+                            vm.addTxn(
+                                customerId,
+                                amt,
+                                type,
+                                note.text.trim().ifEmpty { null },
+                                dateMillis = dateMillis
+                            )
                         }
                         navController.popBackStack()
                     },
@@ -227,9 +344,11 @@ fun AddTxnScreen(
                         Text("Delete")
                     }
                 } else {
-
+                    Box(modifier = Modifier)
                 }
             }
         }
     }
 }
+
+

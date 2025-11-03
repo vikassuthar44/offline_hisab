@@ -20,7 +20,7 @@ fun CustomTextField(
     placeholder: String,
     imeAction: ImeAction = ImeAction.Done,
     keyboardType: KeyboardType = KeyboardType.Text,
-    maxCharacter: Int = 25,
+    maxCharacter: Int = Int.MAX_VALUE,
 ) {
     OutlinedTextField(
         value = value.text,
