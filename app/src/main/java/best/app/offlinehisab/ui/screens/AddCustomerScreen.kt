@@ -94,7 +94,8 @@ fun AddCustomerScreen(
                 placeholder = "Name",
                 modifier = Modifier.fillMaxWidth(),
                 keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Next
+                imeAction = ImeAction.Next,
+                maxCharacter = 40
             )
             Spacer(Modifier.height(8.dp))
             CustomTextField(
@@ -102,9 +103,9 @@ fun AddCustomerScreen(
                 onValueChange = { phone = it },
                 placeholder = "Phone (optional)",
                 modifier = Modifier.fillMaxWidth(),
-                keyboardType = KeyboardType.Number,
+                keyboardType = KeyboardType.Phone,
                 imeAction = ImeAction.Next,
-                maxCharacter = 9
+                maxCharacter = 13
             )
             Spacer(Modifier.height(8.dp))
             CustomTextField(
@@ -113,7 +114,7 @@ fun AddCustomerScreen(
                 placeholder = "Note (optional)",
                 modifier = Modifier.fillMaxWidth(),
                 keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Done
+                imeAction = ImeAction.Next
             )
 
             if (showingError) {

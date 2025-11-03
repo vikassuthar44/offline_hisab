@@ -54,9 +54,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             repo.addCustomer(name, phone, note)
         }
 
-    fun addTxn(customerId: String, amount: Double, type: TxnType, note: String? = null) =
+    fun addTxn(customerId: String, amount: Double, type: TxnType, note: String? = null, dateMillis: Long) =
         viewModelScope.launch(Dispatchers.IO) {
-            repo.addTxn(customerId, amount, type, note)
+            repo.addTxn(customerId, amount, type, note, dateMillis)
         }
 
     fun updateTxn(
@@ -65,9 +65,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         amount: Double,
         type: TxnType,
         note: String? = null,
+        dateMillis: Long
     ) =
         viewModelScope.launch(Dispatchers.IO) {
-            repo.updateTxn(customerId, txnId = txnId, amount, type, note)
+            repo.updateTxn(customerId, txnId = txnId, amount, type, note, dateMillis)
         }
 
     fun updateCustomer(
