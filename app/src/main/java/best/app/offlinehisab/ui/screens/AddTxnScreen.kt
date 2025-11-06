@@ -12,7 +12,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -96,7 +99,10 @@ fun AddTxnScreen(
     val dateText = remember(dateMillis) { dateFormatter.format(java.util.Date(dateMillis)) }
 
     val context = LocalContext.current
-    val calendar = java.util.Calendar.getInstance().apply { timeInMillis = dateMillis }
+    val calendar = Calendar.getInstance().apply { timeInMillis = dateMillis }
+
+    val suggestions by vm.suggestions.collectAsState()
+    var expanded by remember { mutableStateOf(false) }
 
     // DatePickerDialog (allows today & past only)
     val datePickerDialog = remember {
@@ -182,14 +188,40 @@ fun AddTxnScreen(
             )
             Spacer(Modifier.height(8.dp))
 
-            CustomTextField(
-                value = note,
-                onValueChange = { note = it },
-                placeholder = "Note (optional)",
-                modifier = Modifier.fillMaxWidth(),
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Default
-            )
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = it }
+            ) {
+                CustomTextField(
+                    value = note,
+                    onValueChange = {
+                        note = it
+                        vm.onNoteTextChanged(it.text)
+                        expanded = it.text.isNotBlank() && suggestions.isNotEmpty()
+                    },
+                    placeholder = "Note (optional)",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(),
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Default
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }) {
+                    suggestions.forEach { s ->
+                        DropdownMenuItem(
+                            onClick = {
+                                note = TextFieldValue(s)
+                                expanded = false
+                            },
+                            text = {
+                                Text(s)
+                            }
+                        )
+                    }
+                }
+            }
             Spacer(Modifier.height(8.dp))
 
             // Date & Time field (read-only) with calendar + clock icons
@@ -201,7 +233,8 @@ fun AddTxnScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Box(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .border(
                             width = 1.dp,
                             shape = MaterialTheme.shapes.extraSmall,
@@ -301,7 +334,7 @@ fun AddTxnScreen(
                             return@Button
                         }
                         if (isUpdate) {
-                            txn?.id?.let {
+                            txn?.txnId?.let {
                                 vm.updateTxn(
                                     customerId,
                                     txnId = it,
@@ -332,7 +365,15 @@ fun AddTxnScreen(
                     Button(
                         onClick = {
                             txn?.let {
-                                vm.deleteTxn(customerId, it)
+                                vm.deleteTxn(
+                                    customerId,
+                                    Txn(
+                                        id = it.txnId,
+                                        customerId = it.customerId,
+                                        amount = it.amount,
+                                        type = it.type,
+                                    )
+                                )
                                 navController.popBackStack()
                             }
                         },

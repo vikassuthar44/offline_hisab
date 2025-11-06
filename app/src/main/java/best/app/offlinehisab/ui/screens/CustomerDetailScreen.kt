@@ -20,11 +20,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -41,6 +39,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -51,18 +50,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import best.app.offlinehisab.R
 import best.app.offlinehisab.data.db.Customer
-import best.app.offlinehisab.data.db.Txn
 import best.app.offlinehisab.data.db.TxnType
 import best.app.offlinehisab.ui.nav.Screen
 import best.app.offlinehisab.utils.generateCustomerPdfAndSaveModernUpdated
@@ -142,11 +140,25 @@ fun CustomerDetailScreen(
                         vm.getCustomerById(
                             id = customerId
                         )?.let {
+                            var previousAmount: Double? = vm.previousAmount(
+                                filter = filterType
+                            )
+                            var recentAmount: Double? = vm.recentAmount(
+                                filter = filterType
+                            )
+                            if (previousAmount == 0.0) {
+                                previousAmount = null
+                            }
+                            if (recentAmount == 0.0) {
+                                recentAmount = null
+                            }
                             val uri = generateCustomerPdfAndSaveModernUpdated(
                                 context = context,
                                 customer = it,
                                 txns = filterTxns,
                                 filterOptionType = filterType,
+                                recentBalance = recentAmount,
+                                previousBalance = previousAmount,
                                 totals = totals,
                             )
                             uri?.let { pdfUri ->
@@ -162,10 +174,24 @@ fun CustomerDetailScreen(
                         vm.getCustomerById(
                             id = customerId
                         )?.let {
+                            var previousAmount: Double? = vm.previousAmount(
+                                filter = filterType
+                            )
+                            var recentAmount: Double? = vm.recentAmount(
+                                filter = filterType
+                            )
+                            if (previousAmount == 0.0) {
+                                previousAmount = null
+                            }
+                            if (recentAmount == 0.0) {
+                                recentAmount = null
+                            }
                             generateCustomerPdfAndSaveModernUpdated(
                                 context = context,
                                 customer = it,
                                 txns = filterTxns,
+                                previousBalance = previousAmount,
+                                recentBalance = recentAmount,
                                 filterOptionType = filterType,
                                 totals = totals,
                             )
@@ -184,8 +210,12 @@ fun CustomerDetailScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         topBar = {
             CenterAlignedTopAppBar(
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
                 navigationIcon = {
                     IconButton(
                         onClick = {
@@ -463,6 +493,43 @@ fun CustomerDetailScreen(
                     }
                 } else {
                     Column {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(color = Color.LightGray)
+                                .padding(horizontal = 5.dp, vertical = 5.dp)
+                        ) {
+                            Text(
+                                modifier = Modifier.weight(2f),
+                                text = "Date",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    textAlign = TextAlign.Start
+                                )
+                            )
+                            Text(
+                                modifier = Modifier.weight(1f),
+                                text = "Received",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    color = Color(0xFF2E7D32),
+                                    textAlign = TextAlign.End
+                                )
+                            )
+                            Text(
+                                modifier = Modifier.weight(1f),
+                                text = "Paid",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    color = Color(0xFFC62828),
+                                    textAlign = TextAlign.End
+                                )
+                            )
+                            Text(
+                                modifier = Modifier.weight(1f),
+                                text = "Balance",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    textAlign = TextAlign.End
+                                )
+                            )
+                        }
                         LazyColumn(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(5.dp),
@@ -493,8 +560,8 @@ fun CustomerDetailScreen(
 
 @Composable
 private fun TransactionRow(
-    txn: Txn,
-    onClick: (Txn) -> Unit,
+    txn: Transaction,
+    onClick: (Transaction) -> Unit,
 ) {
     val isCredit = txn.type == TxnType.CREDIT
     val icon = if (isCredit) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp
@@ -509,65 +576,95 @@ private fun TransactionRow(
             .fillMaxWidth()
             .background(
                 shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.onPrimary
-            )
-            .border(
-                width = 1.dp,
-                color = amountColor,
-                shape = RoundedCornerShape(8.dp)
+                color = Color.White
             )
             .clickable {
                 onClick(txn)
             }
     ) {
-        Row(
-            modifier = Modifier
-                .padding(12.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 8.dp)
         ) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(icon, contentDescription = null, tint = amountColor)
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    txn.note ?: if (isCredit) "You Received" else "You Paid",
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    date,
+                    text = date,
+                    modifier = Modifier.weight(2f),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    (if (isCredit) "+" else "-") + "₹${"%.2f".format(txn.amount)}",
-                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.weight(1f),
+                    text = if (isCredit) {
+                        "+" + "₹${"%.2f".format(txn.amount)}"
+                    } else "",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        textAlign = TextAlign.End
+                    ),
                     color = amountColor
                 )
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    if (isCredit) "You Received" else "You Paid",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    modifier = Modifier.weight(1f),
+                    text = if (!isCredit) {
+                        "-" + "₹${"%.2f".format(txn.amount)}"
+                    } else "",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        textAlign = TextAlign.End
+                    ),
+                    color = amountColor
                 )
+                Text(
+                    modifier = Modifier.weight(1f),
+                    text = "₹${"%.2f".format(txn.remainingBalance)}",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        textAlign = TextAlign.End,
+                        color = if (txn.remainingBalance >= 0) {
+                            Color(0xFF2E7D32)
+                        } else {
+                            Color(0xFFC62828)
+                        }
+                    ),
+                )
+                /*Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        txn.note ?: if (isCredit) "You Received" else "You Paid",
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        date,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }*/
+
+                /*Spacer(modifier = Modifier.width(12.dp))
+
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        (if (isCredit) "+" else "-") + "₹${"%.2f".format(txn.amount)}",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = amountColor
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        if (isCredit) "You Received" else "You Paid",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }*/
             }
+            Text(
+                txn.note ?: if (isCredit) "You Received" else "You Paid",
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

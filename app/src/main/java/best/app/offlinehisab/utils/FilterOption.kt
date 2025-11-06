@@ -18,9 +18,7 @@ class FilterOption {
             return listOf(
                 FilterOptionType.Today,
                 FilterOptionType.ThisWeek,
-                FilterOptionType.LastWeek,
                 FilterOptionType.ThisMonth,
-                FilterOptionType.LastMonth,
                 FilterOptionType.All,
             )
         }
