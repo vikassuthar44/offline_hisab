@@ -27,4 +27,17 @@ interface TxnDao {
 
     @Query("SELECT COUNT(*) FROM txns")
     suspend fun countTransactions(): Int
+
+
+    @Query("""
+        SELECT note
+        FROM txns
+        WHERE note IS NOT NULL
+          AND note <> ''
+          AND note LIKE :pattern COLLATE NOCASE
+        GROUP BY note
+        ORDER BY COUNT(*) DESC
+        LIMIT :limit
+    """)
+    fun getNotesPrefixFlow(pattern: String, limit: Int = 20): Flow<List<String>>
 }

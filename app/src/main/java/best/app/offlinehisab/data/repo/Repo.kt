@@ -4,9 +4,12 @@ import best.app.offlinehisab.data.db.AppDatabase
 import best.app.offlinehisab.data.db.Customer
 import best.app.offlinehisab.data.db.Txn
 import best.app.offlinehisab.data.db.TxnType
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 
 class Repo(private val db: AppDatabase) {
@@ -114,4 +117,20 @@ class Repo(private val db: AppDatabase) {
     /** Flow of latest transaction for a customer (nullable). */
     fun latestTxnForCustomerFlow(customerId: String): Flow<Txn?> =
         txnsForCustomerFlow(customerId).map { list -> list.firstOrNull() }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun prefixSuggestions(inputFlow: Flow<String>, limit: Int = 20): Flow<List<String>> {
+        return inputFlow
+            .map { it.trim() }
+            .distinctUntilChanged()
+            .map { input ->
+                val pattern = if (input.isEmpty()) "%" else "${escapeLike(input)}%"
+                pattern to limit
+            }
+            .flatMapLatest { (pattern, lim) ->
+                txnDao.getNotesPrefixFlow(pattern, lim)
+            }
+    }
+
+    private fun escapeLike(s: String) = s.replace("%", "\\%").replace("_", "\\_")
 }
